@@ -1,0 +1,35 @@
+version: "3.9"
+
+services:
+  streamlit:
+    image: python:3.10-slim
+    container_name: streamlit_app_init_lec
+    working_dir: /app
+    ports:
+      - "8601:8501"
+    volumes:
+      - ./:/app
+      - ./requirements.txt:/tmp/requirements.txt
+      # 선택: 스트림릿 설정 파일을 컨테이너에 마운트(아래에 예시)
+      # - ./streamlit_config.toml:/root/.streamlit/config.toml:ro
+    environment:
+      # 도커/네트워크 드라이브에서 변경 감지를 확실히 하려면 폴링이 안정적
+      - STREAMLIT_SERVER_FILE_WATCHER_TYPE=poll
+      # 저장 시 즉시 리런
+      - STREAMLIT_SERVER_RUN_ON_SAVE=true
+      # (선택) 캐시 무효화 테스트가 필요하면 주석 해제
+      # - STREAMLIT_CACHING_CLEAR_CACHE_ON_START=true
+    command: >
+      bash -lc "pip install --no-cache-dir -r /tmp/requirements.txt &&
+                streamlit run app.py
+                --server.port=8501
+                --server.address=0.0.0.0"
+    restart: unless-stopped
+    # ↓ app.py가 없을 때 컨테이너가 꺼지지 않게 하려면 아래 대안 명령을 사용 (위 command 대신)
+    # command: >
+    #   bash -lc "pip install --no-cache-dir -r /tmp/requirements.txt &&
+    #             if [ -f app.py ]; then
+    #               streamlit run app.py --server.port=8501 --server.address=0.0.0.0;
+    #             else
+    #               echo 'app.py가 없어 대기합니다. notebooks/app.py를 만든 뒤 컨테이너를 재시작하세요.'; tail -f /dev/null;
+    #             fi"
